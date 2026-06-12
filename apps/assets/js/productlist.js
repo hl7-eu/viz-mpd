@@ -269,7 +269,7 @@ for (var j = 0; j < data[i].entry.length; j++) {
       var validateUrl = encodeURIComponent(baseurl + '/Bundle/' + bid + '?_format=json');
       current_row.push(
         '<span class="full-validation-link" data-resource-id="' + bid + '">' +
-        '<span class="validation-status" data-resource-id="' + bid + '">Validating...</span> ' +
+        '<span class="validation-status" data-resource-id="' + bid + '">Validating...</span><br>' +
         '<a target="_blank" href="./visualiser/outcome.html?url=' + validateUrl + '">Report</a>' +
         '</span>'
       );
@@ -474,9 +474,9 @@ async function validateAllRows(baseurl) {
             });
           }
           el.innerHTML =
-            '<span class="error-count" style="color:red;font-weight:bold;">' + errorCount + ' err</span> ' +
-            '<span class="warning-count" style="color:orange;font-weight:bold;">' + warningCount + ' warn</span> ' +
-            '<span class="info-count" style="color:blue;">' + infoCount + ' info</span>';
+            '<span class="error-count" style="color:#dc3545;">' + errorCount + ' err</span> ' +
+            '<span class="warning-count" style="color:#e67e22;">' + warningCount + ' warn</span> ' +
+            '<span class="info-count" style="color:#0d6efd;">' + infoCount + ' info</span>';
         })
         .catch(function(error) {
           console.error('Validation error for ' + resourceId + ':', error);
