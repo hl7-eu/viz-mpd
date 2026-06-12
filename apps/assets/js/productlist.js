@@ -213,6 +213,7 @@ async function getDataToProcess(url, isBundleOfBundles) {
 }
 
 
+var progressIndicator = document.getElementById('progressIndicator');
 async function processData(data, baseurl) {
   var processingModal = document.getElementById('processingModal');
   processingModal.style.display = 'block'; // Show the modal
@@ -253,7 +254,7 @@ for (var j = 0; j < data[i].entry.length; j++) {
 
       //http://fhir.hl7.pt:8787/fhir/MedicinalProductDefinition?_id=ABASAGLAR-100eml-Solution-SE-IS-MedicinalProductDefinition&_revinclude=RegulatedAuthorization:subject&_include:iterate=RegulatedAuthorization:holder&_revinclude:iterate=Ingredient:for&_revinclude=PackagedProductDefinition:package-for&_include:iterate=PackagedProductDefinition:manufactured-item&_revinclude=AdministrableProductDefinition:form-of&_revinclude:iterate=Ingredient:for&_include:iterate=Ingredient:for&_format=json
       try {
-        current_row.push('<a target="_blank" href="' + baseurl + '/Bundle/' + bid +'"&_format=json">JSON</a>');
+        current_row.push('<a target="_blank" href="' + baseurl + '/Bundle/' + bid + '?_format=json">JSON</a>');
       } catch (error) {
         current_row.push(error);
       }
@@ -265,9 +266,11 @@ for (var j = 0; j < data[i].entry.length; j++) {
         }
         */
 
+      var validateUrl = encodeURIComponent(baseurl + '/Bundle/' + bid + '?_format=json');
       current_row.push(
-        '<span class="full-validation-link">' +
-        '<a target="_blank" href="./visualiser/outcome.html?url=' + baseurl + '/Bundle/' + bid + '?_format=json">Report</a>' +
+        '<span class="full-validation-link" data-resource-id="' + bid + '">' +
+        '<span class="validation-status" data-resource-id="' + bid + '">Validating...</span> ' +
+        '<a target="_blank" href="./visualiser/outcome.html?url=' + validateUrl + '">Report</a>' +
         '</span>'
       );
 
@@ -285,9 +288,8 @@ for (var j = 0; j < data[i].entry.length; j++) {
   // Draw the DataTable after all data is added
   t.draw();
 
-
-
-
+  // Auto-validate all rows
+  validateAllRows(baseurl);
 }
 
 
@@ -396,43 +398,36 @@ function createValidationLabel(validationData, resourceID, baseurl) {
 }
 
 async function validateResource(resourceId, baseurl) {
-  // Construct the validation URL
-  const validationUrl = `${baseurl}/Bundle/${resourceId}/$validate`;
+  var validationUrl = baseurl + '/Bundle/' + resourceId + '/$validate';
 
   try {
-    // Make the API call to get the validation report
-    const response = await fetch(validationUrl);
+    var response = await fetch(validationUrl);
 
     if (response.status === 200) {
-      const validationData = await response.json();
+      var validationData = await response.json();
 
-      // Parse the validation report and count errors, warnings, and info
-      let errorCount = 0;
-      let warningCount = 0;
-      let infoCount = 0;
+      var errorCount = 0;
+      var warningCount = 0;
+      var infoCount = 0;
 
       if (validationData.issue) {
-        validationData.issue.forEach((issue) => {
-          if (issue.severity === 'error') {
-            errorCount++;
-          } else if (issue.severity === 'warning') {
-            warningCount++;
-          } else if (issue.severity === 'information') {
-            infoCount++;
-          }
+        validationData.issue.forEach(function(issue) {
+          if (issue.severity === 'error') { errorCount++; }
+          else if (issue.severity === 'warning') { warningCount++; }
+          else if (issue.severity === 'information') { infoCount++; }
         });
       }
 
       return {
-        errorCount,
-        warningCount,
-        infoCount,
+        errorCount: errorCount,
+        warningCount: warningCount,
+        infoCount: infoCount,
         validationReport: validationData,
       };
     } else {
       console.error('Error fetching validation data:', response.status);
       return {
-        errorCount: -1, // Indicate an error
+        errorCount: -1,
         warningCount: 0,
         infoCount: 0,
         validationReport: null,
@@ -441,7 +436,7 @@ async function validateResource(resourceId, baseurl) {
   } catch (error) {
     console.error('Error fetching validation data:', error);
     return {
-      errorCount: -1, // Indicate an error
+      errorCount: -1,
       warningCount: 0,
       infoCount: 0,
       validationReport: null,
@@ -450,9 +445,45 @@ async function validateResource(resourceId, baseurl) {
 }
 
 
-// Function to clear validation labels
 function clearValidationLabels() {
   $('#prod-table').find('.validation-label').html('');
+}
+
+async function validateAllRows(baseurl) {
+  var statusElements = document.querySelectorAll('.validation-status[data-resource-id]');
+  for (var i = 0; i < statusElements.length; i++) {
+    (function(el) {
+      var resourceId = el.getAttribute('data-resource-id');
+      var validationUrl = baseurl + '/Bundle/' + resourceId + '/$validate';
+      fetch(validationUrl)
+        .then(function(response) {
+          if (response.status === 200) {
+            return response.json();
+          }
+          throw new Error('Validation failed: ' + response.status);
+        })
+        .then(function(validationData) {
+          var errorCount = 0;
+          var warningCount = 0;
+          var infoCount = 0;
+          if (validationData.issue) {
+            validationData.issue.forEach(function(issue) {
+              if (issue.severity === 'error') { errorCount++; }
+              else if (issue.severity === 'warning') { warningCount++; }
+              else if (issue.severity === 'information') { infoCount++; }
+            });
+          }
+          el.innerHTML =
+            '<span class="error-count" style="color:red;font-weight:bold;">' + errorCount + ' err</span> ' +
+            '<span class="warning-count" style="color:orange;font-weight:bold;">' + warningCount + ' warn</span> ' +
+            '<span class="info-count" style="color:blue;">' + infoCount + ' info</span>';
+        })
+        .catch(function(error) {
+          console.error('Validation error for ' + resourceId + ':', error);
+          el.innerHTML = '<span style="color:red;">Error</span>';
+        });
+    })(statusElements[i]);
+  }
 }
 
 
