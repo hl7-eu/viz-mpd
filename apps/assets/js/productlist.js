@@ -213,8 +213,8 @@ async function getDataToProcess(url, isBundleOfBundles) {
 }
 
 
-var progressIndicator = document.getElementById('progressIndicator');
 async function processData(data, baseurl) {
+  var progressIndicator = document.getElementById('progressIndicator');
   var processingModal = document.getElementById('processingModal');
   processingModal.style.display = 'block'; // Show the modal
   var totalCount = data.length;
