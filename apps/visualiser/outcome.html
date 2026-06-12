@@ -51,6 +51,10 @@
 
     const result = document.querySelector('#result')
     const engine = new liquidjs.Liquid()
+    engine.registerFilter('pluralize', function(v) {
+      if (typeof v === 'number' && v !== 1) return 's';
+      return '';
+    });
     $.get("./templates/" + templateFile, function (ltemplate) {
       const resourceUrl = window.location.search.split('url=')[1];
       console.log("Resource URL: ", resourceUrl);

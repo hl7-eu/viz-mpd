@@ -27,6 +27,10 @@
 
       var result = document.querySelector('#result');
       var engine = new liquidjs.Liquid();
+      engine.registerFilter('pluralize', function(v) {
+        if (typeof v === 'number' && v !== 1) return 's';
+        return '';
+      });
 
       $.get("./templates/" + templateFile, function(ltemplate) {
         $.getJSON(url, function(json) {
