@@ -20,6 +20,11 @@
 
     var result = document.querySelector('#result');
 
+    function showError(msg, detail) {
+      result.innerHTML = '<div class="alert alert-danger">' + msg + '</div>' +
+        (detail ? '<pre class="small text-muted">' + detail + '</pre>' : '');
+    }
+
     function processResponseData(responseData) {
       if (responseData && responseData.issue && Array.isArray(responseData.issue)) {
         for (var i = 0; i < responseData.issue.length; i++) {
@@ -31,57 +36,75 @@
       return responseData;
     }
 
+    function deriveBaseUrl(resourceUrl) {
+      try {
+        var parsed = new URL(resourceUrl);
+        var path = parsed.pathname;
+        var fhirIndex = path.indexOf('/fhir');
+        if (fhirIndex > -1) {
+          return parsed.origin + path.substring(0, fhirIndex + 5);
+        }
+        return parsed.origin + path.replace(/\/Bundle\/.+$/, '');
+      } catch (e) {
+        return null;
+      }
+    }
+
     var engine = new liquidjs.Liquid();
     engine.registerFilter('pluralize', function(v) {
       if (typeof v === 'number' && v !== 1) return 's';
       return '';
     });
 
-    $.get("./templates/" + "outcome.liquid", function(ltemplate) {
+    $.get("./templates/outcome.liquid", function(ltemplate) {
       if (!url) {
-        result.innerHTML = '<div class="alert alert-danger">No URL parameter provided.</div>';
+        showError('No URL parameter provided. Usage: outcome.html?url=&lt;resource_url&gt;');
         return;
       }
+
+      var baseurl = deriveBaseUrl(url);
+      if (!baseurl) {
+        showError('Could not derive server URL from: ' + url);
+        return;
+      }
+
+      var postUrl = baseurl + '/Bundle/$validate';
       console.log("Resource URL: ", url);
+      console.log("Validate URL: ", postUrl);
 
-      $.getJSON("../config.json", function(config) {
-        var baseurl = config.server_url;
-        var postUrl = baseurl + '/Bundle/$validate';
-        console.log("POST URL from config: ", postUrl);
-
-        $.ajax({
-          url: url,
-          type: 'GET',
-          dataType: 'json',
-          success: function(getResponse) {
-            console.log("GET Response: ", getResponse);
-            $.ajax({
-              url: postUrl,
-              type: 'POST',
-              contentType: 'application/fhir+json',
-              data: JSON.stringify(getResponse),
-              complete: function(xhr, textStatus) {
-                if (xhr.status === 200 || xhr.status === 412) {
-                  var processedData = processResponseData(xhr.responseJSON);
-                  console.log(processedData);
-                  engine.parseAndRender(ltemplate, processedData)
-                    .then(function(html) { result.innerHTML = html; });
-                } else {
-                  console.log("Error in POST Request: Status Code ", xhr.status);
-                  result.innerHTML = '<div class="alert alert-danger">Validation request failed with status ' + xhr.status + '</div>';
-                }
-              }
-            });
-          },
-          error: function(xhr, textStatus, errorThrown) {
-            console.error("Error fetching resource:", textStatus, errorThrown);
-            result.innerHTML = '<div class="alert alert-danger">Failed to fetch resource from: ' + url + '<br>Error: ' + errorThrown + '</div>';
+      fetch(url, { headers: { 'Accept': 'application/fhir+json' } })
+        .then(function(response) {
+          if (!response.ok) {
+            throw new Error('GET resource failed: ' + response.status + ' ' + response.statusText + ' (' + url + ')');
           }
+          return response.json();
+        })
+        .then(function(getResponse) {
+          console.log("GET response received, posting to $validate...");
+          return fetch(postUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/fhir+json', 'Accept': 'application/fhir+json' },
+            body: JSON.stringify(getResponse)
+          });
+        })
+        .then(function(response) {
+          if (response.status === 200 || response.status === 412) {
+            return response.json();
+          }
+          throw new Error('$validate POST failed: ' + response.status + ' ' + response.statusText + ' (' + postUrl + ')');
+        })
+        .then(function(validationData) {
+          var processedData = processResponseData(validationData);
+          console.log(processedData);
+          engine.parseAndRender(ltemplate, processedData)
+            .then(function(html) { result.innerHTML = html; });
+        })
+        .catch(function(error) {
+          console.error('Validation error:', error);
+          showError('Validation failed', error.message);
         });
-      }).fail(function(xhr, textStatus, errorThrown) {
-        console.error("Error fetching config.json:", textStatus, errorThrown);
-        result.innerHTML = '<div class="alert alert-danger">Failed to load config.json. Make sure the file exists.</div>';
-      });
+    }).fail(function(xhr, textStatus, errorThrown) {
+      showError('Failed to load template', textStatus + ' ' + errorThrown);
     });
   </script>
 </body>
