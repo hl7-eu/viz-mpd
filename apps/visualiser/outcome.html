@@ -68,30 +68,26 @@
         return;
       }
 
-      var postUrl = baseurl + '/Bundle/$validate';
-      console.log("Resource URL: ", url);
-      console.log("Validate URL: ", postUrl);
+      var bundleId = '';
+      try {
+        var match = url.match(/\/Bundle\/([^?/]+)/);
+        bundleId = match ? match[1] : '';
+      } catch (e) {}
 
-      fetch(url, { headers: { 'Accept': 'application/fhir+json' } })
+      var validateUrl = bundleId
+        ? baseurl + '/Bundle/' + bundleId + '/$validate'
+        : baseurl + '/Bundle/$validate';
+
+      console.log("Validate URL: ", validateUrl);
+
+      fetch(validateUrl, {
+        headers: { 'Accept': 'application/fhir+json' }
+      })
         .then(function(response) {
-          if (!response.ok) {
-            throw new Error('GET resource failed: ' + response.status + ' ' + response.statusText + ' (' + url + ')');
-          }
-          return response.json();
-        })
-        .then(function(getResponse) {
-          console.log("GET response received, posting to $validate...");
-          return fetch(postUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/fhir+json', 'Accept': 'application/fhir+json' },
-            body: JSON.stringify(getResponse)
-          });
-        })
-        .then(function(response) {
-          if (response.status === 200 || response.status === 412) {
+          if (response.ok || response.status === 412) {
             return response.json();
           }
-          throw new Error('$validate POST failed: ' + response.status + ' ' + response.statusText + ' (' + postUrl + ')');
+          throw new Error('$validate failed: ' + response.status + ' ' + response.statusText);
         })
         .then(function(validationData) {
           var processedData = processResponseData(validationData);
