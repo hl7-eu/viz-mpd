@@ -1,55 +1,114 @@
-          <p>
-            Category:
-            <b>
-              {{ entr.resource.category[0].coding[0].code }}
-            </b>
-          </p>
+{% assign interp_class = "" %}
+{% if entr.resource.interpretation %}
+  {% assign interp_code = entr.resource.interpretation[0].coding[0].code %}
+  {% if interp_code == "N" %}{% assign interp_class = "interp-normal" %}
+  {% elsif interp_code == "H" or interp_code == "HH" %}{% assign interp_class = "interp-high" %}
+  {% elsif interp_code == "L" or interp_code == "LL" %}{% assign interp_class = "interp-low" %}
+  {% elsif interp_code == "A" %}{% assign interp_class = "interp-abnormal" %}
+  {% elsif interp_code == "S" %}{% assign interp_class = "interp-susceptible" %}
+  {% elsif interp_code == "R" %}{% assign interp_class = "interp-resistant" %}
+  {% endif %}
+{% endif %}
 
-          <p>
-            Code:
-            <b>
-              {% if entr.resource.code.text %} 
-              {{ entr.resource.code.text }}
-              {% else %}
-              {{ entr.resource.code.coding[0].display }}
-              {% endif %}
-            </b>
-          </p>
-         <p>effective Date: <b>{{entr.resource.effectiveDateTime}}</b></p>
-   
-         {% if entr.resource.valueCodeableConcept %}
+<div class="lab-obs-header">
+  <span class="lab-obs-code">
+    {% if entr.resource.code.text %}
+      {{ entr.resource.code.text }}
+    {% elsif entr.resource.code.coding[0].display %}
+      {{ entr.resource.code.coding[0].display }}
+    {% endif %}
+    {% if entr.resource.category %}
+      <span class="lab-badge lab-badge-secondary ms-1">{{ entr.resource.category[0].coding[0].code }}</span>
+    {% endif %}
+  </span>
+  {% if entr.resource.interpretation %}
+    <span class="lab-badge {% if interp_class == 'interp-normal' %}lab-badge-success{% elsif interp_class == 'interp-high' or interp_class == 'interp-low' %}lab-badge-danger{% elsif interp_class == 'interp-abnormal' %}lab-badge-warning{% elsif interp_class == 'interp-susceptible' %}lab-badge-success{% elsif interp_class == 'interp-resistant' %}lab-badge-danger{% else %}lab-badge-info{% endif %}">
+      {{ entr.resource.interpretation[0].coding[0].display }}
+    </span>
+  {% endif %}
+</div>
 
-            <p>Value: <b>{{entr.resource.valueCodeableConcept.coding[0].display}}</b>
-            {% if entr.resource.interpretation %}
-                <span style="font-size: 14px"> ({{entr.resource.interpretation[0].coding[0].display}}) </span>
-            {% endif %}
-            </p>
+{% if entr.resource.valueQuantity %}
+  <div class="lab-obs-value">
+    {% if entr.resource.valueQuantity.comparator %}{{ entr.resource.valueQuantity.comparator }}{% endif %}{{ entr.resource.valueQuantity.value }} {{ entr.resource.valueQuantity.unit }}
+  </div>
+{% elsif entr.resource.valueCodeableConcept %}
+  <div class="lab-obs-value">
+    {% if entr.resource.valueCodeableConcept.text %}
+      {{ entr.resource.valueCodeableConcept.text }}
+    {% elsif entr.resource.valueCodeableConcept.coding[0].display %}
+      {{ entr.resource.valueCodeableConcept.coding[0].display }}
+    {% endif %}
+  </div>
+{% elsif entr.resource.valueString %}
+  <div class="lab-obs-value">{{ entr.resource.valueString }}</div>
+{% elsif entr.resource.valueBoolean %}
+  <div class="lab-obs-value">{{ entr.resource.valueBoolean }}</div>
+{% elsif entr.resource.valueInteger %}
+  <div class="lab-obs-value">{{ entr.resource.valueInteger }}</div>
+{% endif %}
 
-            {% endif %}
-
-
-            {% if entr.resource.valueQuantity %}
-            <p>Value: <b>{{entr.resource.valueQuantity.value}} {{entr.resource.valueQuantity.unit}}</b>
-            {% if entr.resource.interpretation %}
-                <span style="font-size: 14px"> ({{entr.resource.interpretation[0].coding[0].display}}) </span>
-            {% endif %}
-        {% endif %}
-
-        {% if entr.resource.specimen %}
-          
-          {% assign spec = entry | where: "fullUrl", entr.resource.specimen.reference | first %}
-          {% if spec.resource.resourceType == "Specimen" %}
-          <p>Specimen Type: <b>{{spec.resource.type.coding[0].display}}</b></p>
-          
-          {% if spec.resource.collection %}
-          <p>Specimen Collection Date: <b>{{spec.resource.collection.collectedDateTime}}</b></p>
+{% if entr.resource.component %}
+  <table class="lab-component-table">
+    {% for comp in entr.resource.component %}
+      <tr>
+        <td>
+          {% if comp.code.text %}
+            {{ comp.code.text }}
+          {% elsif comp.code.coding[0].display %}
+            {{ comp.code.coding[0].display }}
           {% endif %}
-
+        </td>
+        <td>
+          {% if comp.valueQuantity %}
+            {% if comp.valueQuantity.comparator %}{{ comp.valueQuantity.comparator }}{% endif %}{{ comp.valueQuantity.value }} {{ comp.valueQuantity.unit }}
+          {% elsif comp.valueCodeableConcept %}
+            {% if comp.valueCodeableConcept.text %}
+              {{ comp.valueCodeableConcept.text }}
+            {% elsif comp.valueCodeableConcept.coding[0].display %}
+              {{ comp.valueCodeableConcept.coding[0].display }}
+            {% endif %}
+          {% elsif comp.valueString %}
+            {{ comp.valueString }}
           {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+  </table>
+{% endif %}
 
-        {% endif %}
+{% if entr.resource.referenceRange %}
+  <div class="lab-obs-detail">
+    Ref:
+    {% for rr in entr.resource.referenceRange %}
+      {% if rr.low and rr.high %}
+        {{ rr.low.value }} – {{ rr.high.value }} {{ rr.high.unit | default: "" }}
+      {% elsif rr.low %}
+        ≥ {{ rr.low.value }} {{ rr.low.unit | default: "" }}
+      {% elsif rr.high %}
+        ≤ {{ rr.high.value }} {{ rr.high.unit | default: "" }}
+      {% endif %}
+      {% if rr.text %}({{ rr.text }}){% endif %}
+    {% endfor %}
+  </div>
+{% endif %}
 
-      
-        
+{% if entr.resource.effectiveDateTime %}
+  <div class="lab-obs-detail">{{ entr.resource.effectiveDateTime }}</div>
+{% endif %}
 
-        {% comment %}{% endcomment %}
+{% if entr.resource.specimen %}
+  {% assign spec = entry | where: "fullUrl", entr.resource.specimen.reference | first %}
+  {% if spec %}
+    {% assign sp = spec.resource %}
+    <div class="lab-obs-footer">
+      Specimen:
+      {% if sp.type %}
+        {% if sp.type.coding[0].display %}{{ sp.type.coding[0].display }}{% endif %}
+      {% endif %}
+      {% if sp.collection %}
+        {% if sp.collection.collectedDateTime %} · Collected: {{ sp.collection.collectedDateTime }}{% endif %}
+      {% endif %}
+    </div>
+  {% endif %}
+{% endif %}
