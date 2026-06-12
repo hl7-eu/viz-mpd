@@ -476,7 +476,7 @@ async function validateAllRows(baseurl) {
           el.innerHTML =
             '<span class="error-count" style="color:#dc3545;">' + errorCount + ' err</span> ' +
             '<span class="warning-count" style="color:#e67e22;">' + warningCount + ' warn</span> ' +
-            '<span class="info-count" style="color:#0d6efd;">' + infoCount + ' info</span>';
+            '<span class="info-count">' + infoCount + ' info</span>';
         })
         .catch(function(error) {
           console.error('Validation error for ' + resourceId + ':', error);
