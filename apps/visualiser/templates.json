@@ -1,11 +1,16 @@
 {
-    "templates":
-        [
-            {
-                "resourceType": "MedicinalProductDefinition",
-                "template":"mpd.liquid",
-                "query":"&_revinclude=RegulatedAuthorization:subject&_include:iterate=RegulatedAuthorization:holder&_revinclude=PackagedProductDefinition:package-for&_include:iterate=PackagedProductDefinition:manufactured-item&_revinclude=AdministrableProductDefinition:form-of&_revinclude:iterate=Ingredient:for", 
-                "querydescription":"      /* Search:\n            /MedicinalProductDefinition?_id=XXXXXXX\n              &_revinclude=RegulatedAuthorization:subject\n                &_include:iterate=RegulatedAuthorization:holder\n              &_revinclude=PackagedProductDefinition:package-for\n                &_include:iterate=PackagedProductDefinition:manufactured-item\n              &_revinclude=AdministrableProductDefinition:form-of\n                  &_revinclude:iterate=Ingredient:for\n            */"
-            }
-        ]
+  "templates": [
+    {
+      "resourceType": "Bundle",
+      "template": "bundlelab.liquid",
+      "query": "",
+      "querydescription": "Lab report Bundle viewer — renders Composition, Patient, DiagnosticReport, Observation, Specimen, Organization, ServiceRequest, and other EU Lab resources"
+    },
+    {
+      "resourceType": "OperationOutcome",
+      "template": "outcome.liquid",
+      "query": "",
+      "querydescription": "Validation outcome viewer — renders errors, warnings, and information from $validate operations"
+    }
+  ]
 }
