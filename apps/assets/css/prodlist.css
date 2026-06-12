@@ -19,29 +19,16 @@
     background-color: #0056b3; /* Darker blue on hover */
 }
 
-/* Style for the error count */
 .error-count {
-    background-color: #ff7777; /* Red background color */
-    color: #033; /* Red text color */
-    padding: 1px 3px;
-    border-radius: 2px;
+    color: red;
 }
 
-/* Style for the warning count */
 .warning-count {
-    background-color: #ffcc55; /* Yellow background color */
-    color: #007; /* Yellow text color */
-    padding: 1px 3px;
-    border-radius: 2px;
+    color: orange;
 }
 
-/* Style for the info count */
 .info-count {
-    background-color: #808080; /* Gray background color */
-    color: #000;
-    margin-right: 5px;
-    padding: 1px 3px;
-    border-radius: 2px;
+    color: grey;
 }
 
 /* Style for the "Full Validation" link */
