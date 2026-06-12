@@ -18,8 +18,11 @@
           {% if pr_entry.resource.name[0].text %}
             {% assign pr_name = pr_entry.resource.name[0].text %}
           {% elsif pr_entry.resource.name[0].family %}
-            {% assign pr_name_parts = pr_entry.resource.name[0].given | join: " " %}
-            {% assign pr_name = pr_name_parts | append: " " | append: pr_entry.resource.name[0].family %}
+            {% if pr_entry.resource.name[0].given %}
+              {% assign pr_name = pr_entry.resource.name[0].given | join: " " | append: " " | append: pr_entry.resource.name[0].family %}
+            {% else %}
+              {% assign pr_name = pr_entry.resource.name[0].family %}
+            {% endif %}
           {% endif %}
         {% endif %}
       {% endif %}
@@ -44,8 +47,11 @@
       {% if author_res.name[0].text %}
         {% assign pname = author_res.name[0].text %}
       {% elsif author_res.name[0].family %}
-        {% assign pname_parts = author_res.name[0].given | join: " " %}
-        {% assign pname = pname_parts | append: " " | append: author_res.name[0].family %}
+        {% if author_res.name[0].given %}
+          {% assign pname = author_res.name[0].given | join: " " | append: " " | append: author_res.name[0].family %}
+        {% else %}
+          {% assign pname = author_res.name[0].family %}
+        {% endif %}
       {% endif %}
       {% if author_lines == "" %}
         {% assign author_lines = pname %}
@@ -126,8 +132,11 @@
   {% if pat.name[0].text %}
     {% assign patient_name = pat.name[0].text %}
   {% elsif pat.name[0].family %}
-    {% assign pname_parts = pat.name[0].given | join: " " %}
-    {% assign patient_name = pname_parts | append: " " | append: pat.name[0].family %}
+    {% if pat.name[0].given %}
+      {% assign patient_name = pat.name[0].given | join: " " | append: " " | append: pat.name[0].family %}
+    {% else %}
+      {% assign patient_name = pat.name[0].family %}
+    {% endif %}
   {% endif %}
   {% if patient_name != "" and patient_name != nil %}
     <span class="lab-patient-name">{{ patient_name }}</span>
@@ -187,33 +196,25 @@
     {% assign entr = entry | where: "fullUrl", ent.reference | first %}
     {% if entr %}
       {% if entr.resource.resourceType == "Observation" %}
-        <div class="lab-obs-card">
           {% render "./templates/obs.liquid", entr: entr, entry: entry %}
-        </div>
         {% if entr.resource.hasMember %}
           {% for memb in entr.resource.hasMember %}
             {% assign subentr = entry | where: "fullUrl", memb.reference | first %}
             {% if subentr %}
               <div class="lab-obs-nested">
-                <div class="lab-obs-card">
                   {% render "./templates/obs.liquid", entr: subentr, entry: entry %}
-                </div>
                 {% if subentr.resource.hasMember %}
                   {% for submemb in subentr.resource.hasMember %}
                     {% assign subsubentr = entry | where: "fullUrl", submemb.reference | first %}
                     {% if subsubentr %}
                       <div class="lab-obs-nested">
-                        <div class="lab-obs-card">
                           {% render "./templates/obs.liquid", entr: subsubentr, entry: entry %}
-                        </div>
                         {% if subsubentr.resource.hasMember %}
                           {% for subsubmemb in subsubentr.resource.hasMember %}
                             {% assign lvl3 = entry | where: "fullUrl", subsubmemb.reference | first %}
                             {% if lvl3 %}
                               <div class="lab-obs-nested">
-                                <div class="lab-obs-card">
                                   {% render "./templates/obs.liquid", entr: lvl3, entry: entry %}
-                                </div>
                               </div>
                             {% endif %}
                           {% endfor %}
@@ -256,25 +257,19 @@
       {% if entr %}
         {% if entr.resource.resourceType == "Observation" %}
           <div class="lab-obs-nested">
-            <div class="lab-obs-card">
               {% render "./templates/obs.liquid", entr: entr, entry: entry %}
-            </div>
             {% if entr.resource.hasMember %}
               {% for memb in entr.resource.hasMember %}
                 {% assign subentr = entry | where: "fullUrl", memb.reference | first %}
                 {% if subentr %}
                   <div class="lab-obs-nested">
-                    <div class="lab-obs-card">
                       {% render "./templates/obs.liquid", entr: subentr, entry: entry %}
-                    </div>
                     {% if subentr.resource.hasMember %}
                       {% for submemb in subentr.resource.hasMember %}
                         {% assign subsubentr = entry | where: "fullUrl", submemb.reference | first %}
                         {% if subsubentr %}
                           <div class="lab-obs-nested">
-                            <div class="lab-obs-card">
                               {% render "./templates/obs.liquid", entr: subsubentr, entry: entry %}
-                            </div>
                           </div>
                         {% endif %}
                       {% endfor %}
