@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-    <title>Laboratory Data Browser</title>
+    <title>MPD Data Browser</title>
     <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
     <!-- <link rel="manifest" href="manifest.json"> -->
     <link rel="stylesheet" href="assets/fonts/font-awesome.min.css">
@@ -52,7 +52,7 @@
         <div id="progressIndicator" style="display: none;"></div>
         <div class="tab-content" style="background: var(--bs-white);">
             <div id="tab-1" class="tab-pane active" role="tabpanel">
-                <p style="text-align: center;font-weight: bold;">Laboratory Data Browser<br></p>
+                <p style="text-align: center;font-weight: bold;">Medication Prescription &amp; Dispense Data Browser<br></p>
 
        
 
@@ -62,7 +62,9 @@
                         <thead>
                             <tr>
                                 <th>ID</th>
-                                <th>Name</th>
+                                <th>Medication</th>
+                                <th>Type</th>
+                                <th>Status / Intent</th>
                                 <th>Viewer</th>
                                 <th>Source</th>
                                 <th>Validation</th>
@@ -100,7 +102,7 @@
                 dom: 'frtlip',
                 pageLength: 100,
                 lengthMenu: [0, 5, 10, 20, 50, 100, 200, 500],
-                columns: [{ width: "15%" }, { width: "17%" }, { width: "7%" }, { width: "10%" }, { width: "10%" }]
+                columns: [{ width: "10%" }, { width: "22%" }, { width: "10%" }, { width: "12%" }, { width: "7%" }, { width: "7%" }, { width: "10%" }]
             });
         });
     </script>

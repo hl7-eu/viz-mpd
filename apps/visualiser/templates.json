@@ -2,9 +2,21 @@
   "templates": [
     {
       "resourceType": "Bundle",
-      "template": "bundlelab.liquid",
+      "template": "bundlempd.liquid",
       "query": "",
-      "querydescription": "Lab report Bundle viewer — renders Composition, Patient, DiagnosticReport, Observation, Specimen, Organization, ServiceRequest, and other EU Lab resources"
+      "querydescription": "MPD Bundle viewer — renders MedicationRequest, MedicationDispense, Medication, RequestGroup, Patient, and supporting EU MPD resources"
+    },
+    {
+      "resourceType": "MedicationRequest",
+      "template": "medrequest.liquid",
+      "query": "?_include=MedicationRequest:medication&_include=MedicationRequest:patient&_include=MedicationRequest:requester&_include=MedicationRequest:intended-dispenser",
+      "querydescription": "MedicationRequest viewer — renders a single prescription with dosage, dispense request, and references"
+    },
+    {
+      "resourceType": "MedicationDispense",
+      "template": "meddispense.liquid",
+      "query": "?_include=MedicationDispense:medication&_include=MedicationDispense:patient&_include=MedicationDispense:performer",
+      "querydescription": "MedicationDispense viewer — renders a dispense event with quantity, whenHandedOver, and substitution"
     },
     {
       "resourceType": "OperationOutcome",

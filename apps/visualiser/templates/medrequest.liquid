@@ -1,0 +1,139 @@
+{% assign mr = entr.resource %}
+
+{% assign status_class = "mpd-badge-secondary" %}
+{% if mr.status == "active" %}{% assign status_class = "mpd-badge-success" %}
+{% elsif mr.status == "draft" or mr.status == "on-hold" %}{% assign status_class = "mpd-badge-warning" %}
+{% elsif mr.status == "cancelled" or mr.status == "stopped" or mr.status == "entered-in-error" %}{% assign status_class = "mpd-badge-danger" %}
+{% endif %}
+
+{% assign intent_class = "mpd-badge-info" %}
+{% if mr.intent == "order" %}{% assign intent_class = "mpd-badge-primary" %}
+{% elsif mr.intent == "proposal" %}{% assign intent_class = "mpd-badge-secondary" %}
+{% elsif mr.intent == "plan" %}{% assign intent_class = "mpd-badge-info" %}
+{% endif %}
+
+{% assign med_name = "" %}
+{% if mr.medicationCodeableConcept %}
+  {% if mr.medicationCodeableConcept.text %}
+    {% assign med_name = mr.medicationCodeableConcept.text %}
+  {% elsif mr.medicationCodeableConcept.coding[0].display %}
+    {% assign med_name = mr.medicationCodeableConcept.coding[0].display %}
+  {% endif %}
+{% elsif mr.medicationReference %}
+  {% assign med_ref = entry | where: "fullUrl", mr.medicationReference.reference | first %}
+  {% if med_ref %}
+    {% if med_ref.resource.code.text %}
+      {% assign med_name = med_ref.resource.code.text %}
+    {% elsif med_ref.resource.code.coding[0].display %}
+      {% assign med_name = med_ref.resource.code.coding[0].display %}
+    {% endif %}
+  {% elsif mr.medicationReference.display %}
+    {% assign med_name = mr.medicationReference.display %}
+  {% endif %}
+{% endif %}
+
+<div class="mpd-card-accent primary">
+  <div class="mpd-obs-header">
+    <div>
+      <span class="mpd-obs-code">{{ med_name | default: "Medication" }}</span>
+    </div>
+    <div>
+      <span class="mpd-badge {{ status_class }}">{{ mr.status | default: "unknown" | upcase }}</span>
+      <span class="mpd-badge {{ intent_class }}">{{ mr.intent | default: "unknown" }}</span>
+    </div>
+  </div>
+
+  {% if mr.identifier %}
+  <div class="mpd-obs-detail">
+    {% for id in mr.identifier %}
+      <span>ID: {{ id.value }}</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if mr.reasonCode %}
+  <div class="mpd-obs-detail">
+    <strong>Reason:</strong>
+    {% for rc in mr.reasonCode %}
+      {% if rc.text %}
+        {{ rc.text }}
+      {% elsif rc.coding[0].display %}
+        {{ rc.coding[0].display }}
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if mr.dosageInstruction %}
+  <div class="mpd-obs-detail mt-2">
+    <strong>Dosage:</strong>
+    {% for di in mr.dosageInstruction %}
+      <div style="margin-left: 8px;">
+        {% if di.text %}
+          {{ di.text }}
+        {% else %}
+          {% if di.timing and di.timing.repeat %}
+            {% assign rep = di.timing.repeat %}
+            {% if rep.frequency %}{{ rep.frequency }}x{% endif %}
+            {% if rep.period %} per {{ rep.period }}{{ rep.periodUnit }}{% endif %}
+            {% if rep.when %}
+              {% for w in rep.when %}{{ w }}{% unless forloop.last %}, {% endunless %}{% endfor %}
+            {% endif %}
+          {% endif %}
+          {% if di.doseAndRate %}
+            {% for dar in di.doseAndRate %}
+              {% if dar.doseQuantity %}
+                — {{ dar.doseQuantity.value }} {{ dar.doseQuantity.unit }}
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+          {% if di.route %}
+            {% if di.route.coding[0].display %}, {{ di.route.coding[0].display }}{% endif %}
+          {% endif %}
+        {% endif %}
+        {% if di.additionalInstruction %}
+          {% for ai in di.additionalInstruction %}
+            {% if ai.text %}<span class="mpd-badge mpd-badge-warning">{{ ai.text }}</span>{% endif %}
+          {% endfor %}
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if mr.dispenseRequest %}
+  {% assign dr = mr.dispenseRequest %}
+  <div class="mpd-obs-detail mt-2">
+    <strong>Dispense Request:</strong>
+    {% if dr.validityPeriod %}
+      Valid {{ dr.validityPeriod.start | default: "?" }} → {{ dr.validityPeriod.end | default: "?" }}
+    {% endif %}
+    {% if dr.numberOfRepeatsAllowed %}
+      | Repeats: {{ dr.numberOfRepeatsAllowed }}
+    {% endif %}
+    {% if dr.quantity %}
+      | Quantity: {{ dr.quantity.value }} {{ dr.quantity.unit }}
+    {% endif %}
+    {% if dr.expectedSupplyDuration %}
+      | Supply: {{ dr.expectedSupplyDuration.value }} {{ dr.expectedSupplyDuration.unit }}
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if mr.authoredOn or mr.requester %}
+  <div class="mpd-obs-footer">
+    {% if mr.authoredOn %}Authored: {{ mr.authoredOn }}{% endif %}
+    {% if mr.requester %}
+      {% assign requester_entry = entry | where: "fullUrl", mr.requester.reference | first %}
+      {% if requester_entry %}
+        | By: {% if requester_entry.resource.practitioner.display %}{{ requester_entry.resource.practitioner.display }}{% elsif requester_entry.resource.code.coding[0].display %}{{ requester_entry.resource.code.coding[0].display }}{% else %}{{ mr.requester.display | default: "Unknown" }}{% endif %}
+      {% elsif mr.requester.display %}
+        | By: {{ mr.requester.display }}
+      {% endif %}
+    {% endif %}
+    {% if mr.substitutionAllowed %}
+      | Substitution: {{ mr.substitutionAllowed }}
+    {% endif %}
+  </div>
+  {% endif %}
+</div>

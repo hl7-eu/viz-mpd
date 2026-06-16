@@ -1,0 +1,118 @@
+{% assign md = entr.resource %}
+
+{% assign status_class = "mpd-badge-secondary" %}
+{% if md.status == "completed" %}{% assign status_class = "mpd-badge-success" %}
+{% elsif md.status == "in-progress" or md.status == "preparation" %}{% assign status_class = "mpd-badge-warning" %}
+{% elsif md.status == "cancelled" or md.status == "entered-in-error" %}{% assign status_class = "mpd-badge-danger" %}
+{% endif %}
+
+{% assign med_name = "" %}
+{% if md.medicationCodeableConcept %}
+  {% if md.medicationCodeableConcept.text %}
+    {% assign med_name = md.medicationCodeableConcept.text %}
+  {% elsif md.medicationCodeableConcept.coding[0].display %}
+    {% assign med_name = md.medicationCodeableConcept.coding[0].display %}
+  {% endif %}
+{% elsif md.medicationReference %}
+  {% assign med_ref = entry | where: "fullUrl", md.medicationReference.reference | first %}
+  {% if med_ref %}
+    {% if med_ref.resource.code.text %}
+      {% assign med_name = med_ref.resource.code.text %}
+    {% elsif med_ref.resource.code.coding[0].display %}
+      {% assign med_name = med_ref.resource.code.coding[0].display %}
+    {% endif %}
+  {% elsif md.medicationReference.display %}
+    {% assign med_name = md.medicationReference.display %}
+  {% endif %}
+{% endif %}
+
+<div class="mpd-card-accent success">
+  <div class="mpd-obs-header">
+    <div>
+      <span class="mpd-obs-code">{{ med_name | default: "Medication" }}</span>
+    </div>
+    <div>
+      <span class="mpd-badge {{ status_class }}">{{ md.status | default: "unknown" | upcase }}</span>
+    </div>
+  </div>
+
+  {% if md.identifier %}
+  <div class="mpd-obs-detail">
+    {% for id in md.identifier %}
+      <span>ID: {{ id.value }}</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if md.quantity %}
+  <div class="mpd-obs-detail">
+    <strong>Quantity:</strong> {{ md.quantity.value }} {{ md.quantity.unit }}
+  </div>
+  {% endif %}
+
+  {% if md.daysSupply %}
+  <div class="mpd-obs-detail">
+    <strong>Days Supply:</strong> {{ md.daysSupply.value }} {{ md.daysSupply.unit }}
+  </div>
+  {% endif %}
+
+  {% if md.whenHandedOver %}
+  <div class="mpd-obs-detail">
+    <strong>Handed Over:</strong> {{ md.whenHandedOver }}
+  </div>
+  {% endif %}
+
+  {% if md.wasSubstituted != nil %}
+  <div class="mpd-obs-detail">
+    <strong>Substituted:</strong>
+    {% if md.wasSubstituted %}
+      <span class="mpd-badge mpd-badge-warning">YES</span>
+    {% else %}
+      <span class="mpd-badge mpd-badge-secondary">NO</span>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if md.type %}
+  <div class="mpd-obs-detail">
+    <strong>Dispense Type:</strong>
+    {% if md.type.text %}
+      {{ md.type.text }}
+    {% elsif md.type.coding[0].display %}
+      {{ md.type.coding[0].display }}
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if md.dosageInstruction %}
+  <div class="mpd-obs-detail">
+    <strong>Dosage:</strong>
+    {% for di in md.dosageInstruction %}
+      <div style="margin-left: 8px;">
+        {% if di.text %}
+          {{ di.text }}
+        {% elsif di.doseAndRate %}
+          {% for dar in di.doseAndRate %}
+            {% if dar.doseQuantity %}{{ dar.doseQuantity.value }} {{ dar.doseQuantity.unit }}{% endif %}
+          {% endfor %}
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if md.performer %}
+  <div class="mpd-obs-footer">
+    {% for perf in md.performer %}
+      {% if perf.actor %}
+        {% assign actor_entry = entry | where: "fullUrl", perf.actor.reference | first %}
+        {% if actor_entry %}
+          Dispenser: {{ actor_entry.resource.name | default: perf.actor.display }}
+        {% elsif perf.actor.display %}
+          Dispenser: {{ perf.actor.display }}
+        {% endif %}
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>

@@ -1,0 +1,180 @@
+{% assign patr = entry | where: "resource.resourceType", "Patient" | first %}
+{% assign pat = patr.resource %}
+{% assign rg_entries = entry | where: "resource.resourceType", "RequestGroup" %}
+{% assign mr_entries = entry | where: "resource.resourceType", "MedicationRequest" %}
+{% assign md_entries = entry | where: "resource.resourceType", "MedicationDispense" %}
+{% assign med_entries = entry | where: "resource.resourceType", "Medication" %}
+{% assign pr_entries = entry | where: "resource.resourceType", "PractitionerRole" %}
+{% assign prac_entries = entry | where: "resource.resourceType", "Practitioner" %}
+{% assign org_entries = entry | where: "resource.resourceType", "Organization" %}
+
+{% if rg_entries.size > 0 %}
+{% assign rg = rg_entries[0].resource %}
+{% assign status_class = "mpd-badge-secondary" %}
+{% if rg.status == "active" %}{% assign status_class = "mpd-badge-success" %}
+{% elsif rg.status == "draft" %}{% assign status_class = "mpd-badge-warning" %}
+{% elsif rg.status == "cancelled" or rg.status == "entered-in-error" %}{% assign status_class = "mpd-badge-danger" %}
+{% endif %}
+
+<div class="mpd-hero">
+  <div class="d-flex justify-content-between align-items-start">
+    <div>
+      <h4 class="mpd-title">Prescription{% if rg.groupIdentifier %} #{{ rg.groupIdentifier.value }}{% endif %}</h4>
+      <div class="mpd-meta">
+        {% if rg.status %}<span>Status: {{ rg.status }}</span>{% endif %}
+        {% if rg.intent %}<span>Intent: {{ rg.intent }}</span>{% endif %}
+      </div>
+      {% if rg.subject %}
+        {% assign subj_entry = entry | where: "fullUrl", rg.subject.reference | first %}
+        {% if subj_entry == nil %}
+          {% assign subj_entry = entry | where: "resource.id", rg.subject.reference | first %}
+        {% endif %}
+      {% endif %}
+    </div>
+    <span class="mpd-badge {{ status_class }}">{{ rg.status | default: "UNKNOWN" | upcase }}</span>
+  </div>
+  {% if rg.action %}
+  <div class="mpd-meta mt-2">
+    <span class="mpd-badge mpd-badge-info">{{ rg.action.size }} medication line{{ rg.action.size | pluralize }}</span>
+  </div>
+  {% endif %}
+</div>
+{% elsif mr_entries.size > 0 %}
+
+{% assign first_mr = mr_entries[0].resource %}
+{% assign status_class = "mpd-badge-secondary" %}
+{% if first_mr.status == "active" %}{% assign status_class = "mpd-badge-success" %}
+{% elsif first_mr.status == "draft" or first_mr.status == "on-hold" %}{% assign status_class = "mpd-badge-warning" %}
+{% elsif first_mr.status == "cancelled" or first_mr.status == "stopped" or first_mr.status == "entered-in-error" %}{% assign status_class = "mpd-badge-danger" %}
+{% endif %}
+
+<div class="mpd-hero">
+  <div class="d-flex justify-content-between align-items-start">
+    <div>
+      <h4 class="mpd-title">Medication Request{% if first_mr.groupIdentifier %} #{{ first_mr.groupIdentifier.value }}{% endif %}</h4>
+      <div class="mpd-meta">
+        {% if first_mr.authoredOn %}<span>Authored: {{ first_mr.authoredOn }}</span>{% endif %}
+      </div>
+    </div>
+    <span class="mpd-badge {{ status_class }}">{{ first_mr.status | default: "UNKNOWN" | upcase }}</span>
+  </div>
+</div>
+{% endif %}
+
+{% if pat %}
+<div class="mpd-patient-strip">
+  {% assign patient_name = "" %}
+  {% if pat.name[0].text %}
+    {% assign patient_name = pat.name[0].text %}
+  {% elsif pat.name[0].family %}
+    {% if pat.name[0].given %}
+      {% assign patient_name = pat.name[0].given | join: " " | append: " " | append: pat.name[0].family %}
+    {% else %}
+      {% assign patient_name = pat.name[0].family %}
+    {% endif %}
+  {% endif %}
+  {% if patient_name != "" and patient_name != nil %}
+    <span class="mpd-patient-name">{{ patient_name }}</span>
+  {% endif %}
+  {% if pat.gender %}<span class="mpd-patient-detail">{{ pat.gender | slice: 0 | upcase }}</span>{% endif %}
+  {% if pat.birthDate %}<span class="mpd-patient-detail">b. {{ pat.birthDate }}</span>{% endif %}
+  {% if pat.identifier %}
+  <div class="mpd-identifier-list">
+    {% for pid in pat.identifier %}
+      <span>{{ pid.system | split: "/" | last | upcase }}: <strong>{{ pid.value }}</strong></span>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if mr_entries.size > 0 %}
+<div class="mpd-section-label">Medication Requests (Prescriptions)</div>
+{% for mr_e in mr_entries %}
+  {% render "./templates/medrequest.liquid", entr: mr_e, entry: entry %}
+{% endfor %}
+{% endif %}
+
+{% if md_entries.size > 0 %}
+<div class="mpd-section-label">Medication Dispenses</div>
+{% for md_e in md_entries %}
+  {% render "./templates/meddispense.liquid", entr: md_e, entry: entry %}
+{% endfor %}
+{% endif %}
+
+{% if med_entries.size > 0 %}
+<div class="mpd-section-label">Medications</div>
+{% for med_e in med_entries %}
+  {% assign med = med_e.resource %}
+  <div class="mpd-card">
+    <div class="mpd-obs-header">
+      <div>
+        <span class="mpd-obs-code">
+          {% if med.code %}
+            {% if med.code.text %}
+              {{ med.code.text }}
+            {% elsif med.code.coding[0].display %}
+              {{ med.code.coding[0].display }}
+            {% else %}
+              Medication
+            {% endif %}
+          {% else %}
+            Medication
+          {% endif %}
+        </span>
+        {% if med.form %}
+          <span class="mpd-obs-detail"> — {{ med.form.coding[0].display | default: med.form.text }}</span>
+        {% endif %}
+      </div>
+    </div>
+    {% if med.instance or med.ingredient %}
+    <div class="mpd-obs-detail">
+      {% if med.ingredient %}
+        {% for ing in med.ingredient %}
+          {% if ing.itemCodeableConcept %}
+            <span>{{ ing.itemCodeableConcept.coding[0].display | default: ing.itemCodeableConcept.text }}{% if ing.strength %}: {{ ing.strength.numerator.value }}{{ ing.strength.numerator.unit }}{% endif %}</span>
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+{% endfor %}
+{% endif %}
+
+{% if pr_entries.size > 0 or org_entries.size > 0 %}
+<div class="mpd-section-label">Supporting Resources</div>
+{% endif %}
+
+{% for pr_e in pr_entries %}
+  {% assign pr = pr_e.resource %}
+  <div class="mpd-support-card">
+    <div class="mpd-support-label">Practitioner Role</div>
+    <div class="mpd-support-value">
+      {% if pr.practitioner %}{{ pr.practitioner.display }}{% endif %}
+      {% if pr.organization %} — {{ pr.organization.display }}{% endif %}
+      {% if pr.code %}
+        {% for cc in pr.code %}
+          {% for c in cc.coding %}
+            <span class="mpd-badge mpd-badge-secondary">{{ c.display }}</span>
+          {% endfor %}
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+{% endfor %}
+
+{% for org_e in org_entries %}
+  {% assign org = org_e.resource %}
+  <div class="mpd-support-card">
+    <div class="mpd-support-label">Organization</div>
+    <div class="mpd-support-value">{{ org.name | default: "Unknown" }}</div>
+    {% if org.type %}
+      {% for ot in org.type %}
+        {% for otc in ot.coding %}
+          <span class="mpd-badge mpd-badge-secondary">{{ otc.display }}</span>
+        {% endfor %}
+      {% endfor %}
+    {% endif %}
+  </div>
+{% endfor %}
