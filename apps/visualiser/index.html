@@ -62,7 +62,7 @@
           if (expectedType && entry.resource.resourceType !== expectedType) return false;
           if (expectedId) return entry.resource.id === expectedId;
           if (originalUrl && entry.fullUrl === originalUrl) return true;
-          return Boolean(expectedType);
+          return false;
         }) || null;
       }
 
@@ -143,8 +143,14 @@
         $.get('./templates/' + templateConfig.template, function(ltemplate) {
           $.getJSON(request.fetchUrl, function(json) {
             renderTemplate(ltemplate, json, request);
+          }).fail(function() {
+            result.innerHTML = '<div class="alert alert-danger">Failed to load resource data for this view.</div>';
           });
+        }).fail(function() {
+          result.innerHTML = '<div class="alert alert-danger">Failed to load the selected viewer template.</div>';
         });
+      }).fail(function() {
+        result.innerHTML = '<div class="alert alert-danger">Failed to load visualiser configuration.</div>';
       });
     </script>
   </body>
