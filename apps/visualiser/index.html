@@ -33,16 +33,22 @@
         return 'Bundle';
       }
 
+      function normaliseEntry(entry) {
+        if (!entry || !entry.resource || !entry.resource.resourceType || !entry.resource.id) return entry;
+
+        entry.reference = entry.resource.resourceType + '/' + entry.resource.id;
+        if (!entry.fullUrl) {
+          entry.fullUrl = entry.reference;
+        }
+
+        return entry;
+      }
+
       function normaliseBundleEntries(bundle) {
         if (!bundle || !Array.isArray(bundle.entry)) return bundle;
 
         bundle.entry.forEach(function(entry) {
-          if (!entry || !entry.resource || !entry.resource.resourceType || !entry.resource.id) return;
-
-          entry.reference = entry.resource.resourceType + '/' + entry.resource.id;
-          if (!entry.fullUrl) {
-            entry.fullUrl = entry.reference;
-          }
+          normaliseEntry(entry);
         });
 
         return bundle;
@@ -56,7 +62,7 @@
           if (expectedType && entry.resource.resourceType !== expectedType) return false;
           if (expectedId) return entry.resource.id === expectedId;
           if (originalUrl && entry.fullUrl === originalUrl) return true;
-          return true;
+          return Boolean(expectedType);
         }) || null;
       }
 
@@ -100,11 +106,10 @@
             return;
           }
 
-          var singleEntry = {
+          var singleEntry = normaliseEntry({
             fullUrl: url,
-            reference: json.resourceType && json.id ? json.resourceType + '/' + json.id : null,
             resource: json
-          };
+          });
 
           engine.parseAndRender(ltemplate, { entr: { resource: json }, entry: [singleEntry] })
             .then(function(html) { result.innerHTML = html; });
