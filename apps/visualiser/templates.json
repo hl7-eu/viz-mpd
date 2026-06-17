@@ -9,13 +9,13 @@
     {
       "resourceType": "MedicationRequest",
       "template": "medrequest.liquid",
-      "query": "?_include=MedicationRequest:medication&_include=MedicationRequest:patient&_include=MedicationRequest:requester&_include=MedicationRequest:intended-dispenser",
+      "query": "?_include=MedicationRequest:medication&_include=MedicationRequest:subject&_include=MedicationRequest:requester&_include=MedicationRequest:intended-dispenser",
       "querydescription": "MedicationRequest viewer — renders a single prescription with dosage, dispense request, and references"
     },
     {
       "resourceType": "MedicationDispense",
       "template": "meddispense.liquid",
-      "query": "?_include=MedicationDispense:medication&_include=MedicationDispense:patient&_include=MedicationDispense:performer",
+      "query": "?_include=MedicationDispense:medication&_include=MedicationDispense:subject&_include=MedicationDispense:performer",
       "querydescription": "MedicationDispense viewer — renders a dispense event with quantity, whenHandedOver, and substitution"
     },
     {
