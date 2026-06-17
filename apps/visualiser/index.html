@@ -50,7 +50,7 @@
           console.log(url);
           console.log(json);
           if (resourceType === "MedicationRequest" || resourceType === "MedicationDispense") {
-            var wrapper = { resource: json, entry: [{ fullUrl: url, resource: json }] };
+            var wrapper = { entr: { resource: json }, entry: [{ fullUrl: url, resource: json }] };
             engine.parseAndRender(ltemplate, wrapper)
               .then(function(html) { result.innerHTML = html; });
           } else {

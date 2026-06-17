@@ -68,15 +68,19 @@
         return;
       }
 
-      var bundleId = '';
+      var resourceType = 'Bundle';
+      var resourceId = '';
       try {
-        var match = url.match(/\/Bundle\/([^?/]+)/);
-        bundleId = match ? match[1] : '';
+        var match = url.match(/\/([A-Z][a-zA-Z]+)\/([^?/]+)/);
+        if (match) {
+          resourceType = match[1];
+          resourceId = match[2];
+        }
       } catch (e) {}
 
-      var validateUrl = bundleId
-        ? baseurl + '/Bundle/' + bundleId + '/$validate'
-        : baseurl + '/Bundle/$validate';
+      var validateUrl = resourceId
+        ? baseurl + '/' + resourceType + '/' + resourceId + '/$validate'
+        : baseurl + '/' + resourceType + '/$validate';
 
       console.log("Validate URL: ", validateUrl);
 
