@@ -80,7 +80,8 @@
         request.resourceId = urlsplit[1].split('?')[0];
 
         if (templateConfig && templateConfig.query) {
-          request.fetchUrl = urlsplit[0] + '/' + expectedType + '?_id=' + encodeURIComponent(request.resourceId) + templateConfig.query + '&_format=json';
+          var extraQuery = templateConfig.query.replace(/^[?&]+/, '');
+          request.fetchUrl = urlsplit[0] + '/' + expectedType + '?_id=' + encodeURIComponent(request.resourceId) + (extraQuery ? '&' + extraQuery : '') + '&_format=json';
         } else {
           request.fetchUrl = urlsplit[0] + '/' + expectedType + '/' + request.resourceId + '?_format=json';
         }

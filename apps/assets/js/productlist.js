@@ -84,8 +84,8 @@ document.addEventListener('DOMContentLoaded', async function () {
       clearValidationLabels();
       addValidationClickListener();
 
-      var mrUrl = baseurl + '/MedicationRequest?_format=json&_count=200&_include=MedicationRequest:medication&_include=MedicationRequest:patient&_include=MedicationRequest:requester';
-      var mdUrl = baseurl + '/MedicationDispense?_format=json&_count=200&_include=MedicationDispense:medication&_include=MedicationDispense:patient&_include=MedicationDispense:performer';
+      var mrUrl = baseurl + '/MedicationRequest?_format=json&_count=200&_include=MedicationRequest:medication&_include=MedicationRequest:subject&_include=MedicationRequest:requester';
+      var mdUrl = baseurl + '/MedicationDispense?_format=json&_count=200&_include=MedicationDispense:medication&_include=MedicationDispense:subject&_include=MedicationDispense:performer';
 
       Promise.all([
         fetch(mrUrl).then(r => r.json()),
