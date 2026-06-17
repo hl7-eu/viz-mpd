@@ -71,7 +71,7 @@
       var resourceType = 'Bundle';
       var resourceId = '';
       try {
-        var match = url.match(/\/(Bundle|MedicationRequest|MedicationDispense|Medication|Patient|Practitioner|PractitionerRole|Organization|RequestGroup)\/([^?/]+)/);
+        var match = url.match(/\/([A-Z][a-zA-Z]+)\/([^?/]+)/);
         if (match) {
           resourceType = match[1];
           resourceId = match[2];
