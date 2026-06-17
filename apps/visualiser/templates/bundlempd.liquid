@@ -27,7 +27,11 @@
       {% if rg.subject %}
         {% assign subj_entry = entry | where: "fullUrl", rg.subject.reference | first %}
         {% if subj_entry == nil %}
-          {% assign subj_entry = entry | where: "resource.id", rg.subject.reference | first %}
+          {% assign subj_entry = entry | where: "reference", rg.subject.reference | first %}
+        {% endif %}
+        {% if subj_entry == nil and rg.subject.reference %}
+          {% assign subject_id = rg.subject.reference | split: "/" | last %}
+          {% assign subj_entry = entry | where: "resource.id", subject_id | first %}
         {% endif %}
       {% endif %}
     </div>
