@@ -15,28 +15,8 @@
     <p id="preamble" class="text-muted small mt-2">MPD Viewer v0.1.0</p>
 
     <script type="text/javascript">
-      var url = window.location.search.split('url=')[1];
-      var resourceType = "Bundle";
-      var templateFile = 'bundlempd.liquid';
-
-      if (url) {
-        if (url.indexOf('MedicationRequest') !== -1) {
-          resourceType = "MedicationRequest";
-          templateFile = 'medrequest.liquid';
-        } else if (url.indexOf('MedicationDispense') !== -1) {
-          resourceType = "MedicationDispense";
-          templateFile = 'meddispense.liquid';
-        } else if (url.indexOf('OperationOutcome') !== -1) {
-          resourceType = "OperationOutcome";
-          templateFile = 'outcome.liquid';
-        }
-      }
-
-      var urlsplit = url ? url.split('/' + resourceType + '/') : [];
-      if (urlsplit[1]) {
-        var mpdid = urlsplit[1].split('?')[0];
-        url = urlsplit[0] + '/' + resourceType + '/' + mpdid + '?_format=json';
-      }
+      var url = new URLSearchParams(window.location.search).get('url');
+      var resourceType = 'Bundle';
 
       var result = document.querySelector('#result');
       var engine = new liquidjs.Liquid();
@@ -45,19 +25,132 @@
         return '';
       });
 
-      $.get("./templates/" + templateFile, function(ltemplate) {
-        $.getJSON(url, function(json) {
-          console.log(url);
-          console.log(json);
-          if (resourceType === "MedicationRequest" || resourceType === "MedicationDispense") {
-            var wrapper = { entr: { resource: json }, entry: [{ fullUrl: url, resource: json }] };
+      function detectResourceType(targetUrl) {
+        if (!targetUrl) return 'Bundle';
+        if (targetUrl.indexOf('MedicationRequest') !== -1) return 'MedicationRequest';
+        if (targetUrl.indexOf('MedicationDispense') !== -1) return 'MedicationDispense';
+        if (targetUrl.indexOf('OperationOutcome') !== -1) return 'OperationOutcome';
+        return 'Bundle';
+      }
+
+      function normaliseEntry(entry) {
+        if (!entry || !entry.resource || !entry.resource.resourceType || !entry.resource.id) return entry;
+
+        entry.reference = entry.resource.resourceType + '/' + entry.resource.id;
+        if (!entry.fullUrl) {
+          entry.fullUrl = entry.reference;
+        }
+
+        return entry;
+      }
+
+      function normaliseBundleEntries(bundle) {
+        if (!bundle || !Array.isArray(bundle.entry)) return bundle;
+
+        bundle.entry.forEach(function(entry) {
+          normaliseEntry(entry);
+        });
+
+        return bundle;
+      }
+
+      function findPrimaryEntry(bundle, expectedType, expectedId, originalUrl) {
+        if (!bundle || !Array.isArray(bundle.entry)) return null;
+
+        return bundle.entry.find(function(entry) {
+          if (!entry || !entry.resource) return false;
+          if (expectedType && entry.resource.resourceType !== expectedType) return false;
+          if (expectedId) return entry.resource.id === expectedId;
+          if (originalUrl && entry.fullUrl === originalUrl) return true;
+          return false;
+        }) || null;
+      }
+
+      function buildRequest(targetUrl, expectedType, templateConfig) {
+        var request = {
+          fetchUrl: targetUrl,
+          resourceId: null
+        };
+
+        if (!targetUrl || !expectedType) return request;
+
+        var urlsplit = targetUrl.split('/' + expectedType + '/');
+        if (!urlsplit[1]) return request;
+
+        request.resourceId = urlsplit[1].split('?')[0];
+
+        if (templateConfig && templateConfig.query) {
+          request.fetchUrl = urlsplit[0] + '/' + expectedType + '?_id=' + encodeURIComponent(request.resourceId) + templateConfig.query + '&_format=json';
+        } else {
+          request.fetchUrl = urlsplit[0] + '/' + expectedType + '/' + request.resourceId + '?_format=json';
+        }
+
+        return request;
+      }
+
+      function renderTemplate(ltemplate, json, request) {
+        if (json && json.resourceType === 'Bundle') {
+          normaliseBundleEntries(json);
+        }
+
+        if (resourceType === 'MedicationRequest' || resourceType === 'MedicationDispense') {
+          if (json && json.resourceType === 'Bundle') {
+            var primaryEntry = findPrimaryEntry(json, resourceType, request.resourceId, url);
+            var wrapper = {
+              entr: primaryEntry || { resource: {} },
+              entry: json.entry || []
+            };
+
             engine.parseAndRender(ltemplate, wrapper)
               .then(function(html) { result.innerHTML = html; });
-          } else {
-            engine.parseAndRender(ltemplate, json)
-              .then(function(html) { result.innerHTML = html; });
+            return;
+          }
+
+          var singleEntry = normaliseEntry({
+            fullUrl: url,
+            resource: json
+          });
+
+          engine.parseAndRender(ltemplate, { entr: { resource: json }, entry: [singleEntry] })
+            .then(function(html) { result.innerHTML = html; });
+          return;
+        }
+
+        engine.parseAndRender(ltemplate, json)
+          .then(function(html) { result.innerHTML = html; });
+      }
+
+      resourceType = detectResourceType(url);
+
+      $.getJSON('./templates.json', function(config) {
+        var defaultTemplates = {
+          Bundle: { template: 'bundlempd.liquid', query: '' },
+          MedicationRequest: { template: 'medrequest.liquid', query: '' },
+          MedicationDispense: { template: 'meddispense.liquid', query: '' },
+          OperationOutcome: { template: 'outcome.liquid', query: '' }
+        };
+        var templates = (config && Array.isArray(config.templates)) ? config.templates : [];
+        var templateConfig = defaultTemplates[resourceType];
+
+        templates.forEach(function(candidate) {
+          if (candidate.resourceType === resourceType) {
+            templateConfig = candidate;
           }
         });
+
+        var request = buildRequest(url, resourceType, templateConfig);
+
+        $.get('./templates/' + templateConfig.template, function(ltemplate) {
+          $.getJSON(request.fetchUrl, function(json) {
+            renderTemplate(ltemplate, json, request);
+          }).fail(function() {
+            result.innerHTML = '<div class="alert alert-danger">Failed to load resource data for this view.</div>';
+          });
+        }).fail(function() {
+          result.innerHTML = '<div class="alert alert-danger">Failed to load the selected viewer template.</div>';
+        });
+      }).fail(function() {
+        result.innerHTML = '<div class="alert alert-danger">Failed to load visualiser configuration.</div>';
       });
     </script>
   </body>

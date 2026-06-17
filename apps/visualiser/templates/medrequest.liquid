@@ -1,4 +1,16 @@
 {% assign mr = entr.resource %}
+{% assign patient_entry = nil %}
+{% if mr.subject %}
+  {% assign patient_entry = entry | where: "fullUrl", mr.subject.reference | first %}
+  {% if patient_entry == nil %}
+    {% assign patient_entry = entry | where: "reference", mr.subject.reference | first %}
+  {% endif %}
+  {% if patient_entry == nil and mr.subject.reference %}
+    {% assign patient_id = mr.subject.reference | split: "/" | last %}
+    {% assign patient_entry = entry | where: "resource.id", patient_id | first %}
+  {% endif %}
+{% endif %}
+{% assign patient = patient_entry.resource %}
 
 {% assign status_class = "mpd-badge-secondary" %}
 {% if mr.status == "active" %}{% assign status_class = "mpd-badge-success" %}
@@ -21,6 +33,13 @@
   {% endif %}
 {% elsif mr.medicationReference %}
   {% assign med_ref = entry | where: "fullUrl", mr.medicationReference.reference | first %}
+  {% if med_ref == nil %}
+    {% assign med_ref = entry | where: "reference", mr.medicationReference.reference | first %}
+  {% endif %}
+  {% if med_ref == nil and mr.medicationReference.reference %}
+    {% assign medication_id = mr.medicationReference.reference | split: "/" | last %}
+    {% assign med_ref = entry | where: "resource.id", medication_id | first %}
+  {% endif %}
   {% if med_ref %}
     {% if med_ref.resource.code.text %}
       {% assign med_name = med_ref.resource.code.text %}
@@ -30,6 +49,26 @@
   {% elsif mr.medicationReference.display %}
     {% assign med_name = mr.medicationReference.display %}
   {% endif %}
+{% endif %}
+
+{% if patient %}
+<div class="mpd-patient-strip">
+  {% assign patient_name = "" %}
+  {% if patient.name[0].text %}
+    {% assign patient_name = patient.name[0].text %}
+  {% elsif patient.name[0].family %}
+    {% if patient.name[0].given %}
+      {% assign patient_name = patient.name[0].given | join: " " | append: " " | append: patient.name[0].family %}
+    {% else %}
+      {% assign patient_name = patient.name[0].family %}
+    {% endif %}
+  {% endif %}
+  {% if patient_name != "" and patient_name != nil %}
+    <span class="mpd-patient-name">{{ patient_name }}</span>
+  {% endif %}
+  {% if patient.gender %}<span class="mpd-patient-detail">{{ patient.gender | slice: 0 | upcase }}</span>{% endif %}
+  {% if patient.birthDate %}<span class="mpd-patient-detail">b. {{ patient.birthDate }}</span>{% endif %}
+</div>
 {% endif %}
 
 <div class="mpd-card-accent primary">
@@ -125,6 +164,13 @@
     {% if mr.authoredOn %}Authored: {{ mr.authoredOn }}{% endif %}
     {% if mr.requester %}
       {% assign requester_entry = entry | where: "fullUrl", mr.requester.reference | first %}
+      {% if requester_entry == nil %}
+        {% assign requester_entry = entry | where: "reference", mr.requester.reference | first %}
+      {% endif %}
+      {% if requester_entry == nil and mr.requester.reference %}
+        {% assign requester_id = mr.requester.reference | split: "/" | last %}
+        {% assign requester_entry = entry | where: "resource.id", requester_id | first %}
+      {% endif %}
       {% if requester_entry %}
         | By: {% if requester_entry.resource.practitioner.display %}{{ requester_entry.resource.practitioner.display }}{% elsif requester_entry.resource.code.coding[0].display %}{{ requester_entry.resource.code.coding[0].display }}{% else %}{{ mr.requester.display | default: "Unknown" }}{% endif %}
       {% elsif mr.requester.display %}
